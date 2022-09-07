@@ -2,7 +2,12 @@ import copy
 import enum
 import typing
 
-from pydantic import BaseModel as PydanticModel, Extra, ValidationError
+from pydantic import (
+    BaseModel as PydanticModel,
+    Extra,
+    ValidationError,
+    ConstrainedInt as PydanticConstrainedInt,
+)
 
 
 def resolve_refs(schema, definitions):
@@ -101,6 +106,44 @@ class IntOrString(str):
         if not isinstance(v, (str, int)):
             raise TypeError("int or string required")
         return str(v)
+
+
+class ConstrainedInt(PydanticConstrainedInt):
+    """
+    Type for a constrained integer that produces bools instead of numbers for
+    the exclusive[Minimum,Maximum] fields, as per the OpenAPI v3 spec.
+    """
+    @classmethod
+    def __modify_schema__(cls, field_schema: typing.Dict[str, typing.Any]) -> None:
+        super().__modify_schema__(field_schema)
+        exclusive_min = field_schema.pop("exclusiveMinimum", None)
+        if exclusive_min is not None:
+            field_schema.update({
+                "minimum": exclusive_min,
+                "exclusiveMinimum": True,
+            })
+        exclusive_max = field_schema.pop("exclusiveMaximum", None)
+        if exclusive_max is not None:
+            field_schema.update({
+                "maximum": exclusive_max,
+                "exclusiveMaximum": True,
+            })
+
+
+def conint(
+    *,
+    strict: bool = False,
+    gt: int = None,
+    ge: int = None,
+    lt: int = None,
+    le: int = None,
+    multiple_of: int = None
+) -> typing.Type[int]:
+    return type(
+        "ConstrainedIntValue",
+        (ConstrainedInt,),
+        dict(strict = strict, gt = gt, ge = ge, lt = lt, le = le, multiple_of = multiple_of)
+    )
 
 
 class StructuralUnion:
