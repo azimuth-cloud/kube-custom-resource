@@ -6,7 +6,8 @@ from pydantic import (
     BaseModel as PydanticModel,
     Extra,
     ValidationError,
-    ConstrainedInt as PydanticConstrainedInt,
+    ConstrainedInt,
+    ConstrainedFloat,
 )
 
 
@@ -108,11 +109,7 @@ class IntOrString(str):
         return str(v)
 
 
-class ConstrainedInt(PydanticConstrainedInt):
-    """
-    Type for a constrained integer that produces bools instead of numbers for
-    the exclusive[Minimum,Maximum] fields, as per the OpenAPI v3 spec.
-    """
+class ConstrainedNumberMixin:
     @classmethod
     def __modify_schema__(cls, field_schema: typing.Dict[str, typing.Any]) -> None:
         super().__modify_schema__(field_schema)
@@ -141,8 +138,41 @@ def conint(
 ) -> typing.Type[int]:
     return type(
         "ConstrainedIntValue",
-        (ConstrainedInt,),
-        dict(strict = strict, gt = gt, ge = ge, lt = lt, le = le, multiple_of = multiple_of)
+        (ConstrainedNumberMixin, ConstrainedInt),
+        dict(
+            strict = strict,
+            gt = gt,
+            ge = ge,
+            lt = lt,
+            le = le,
+            multiple_of = multiple_of
+        )
+    )
+
+
+def confloat(
+    *,
+    strict: bool = False,
+    gt: float = None,
+    ge: float = None,
+    lt: float = None,
+    le: float = None,
+    multiple_of: float = None,
+    allow_inf_nan: typing.Optional[bool] = None,
+) -> typing.Type[float]:
+    # use kwargs then define conf in a dict to aid with IDE type hinting
+    return type(
+        "ConstrainedFloatValue",
+        (ConstrainedNumberMixin, ConstrainedFloat),
+        dict(
+            strict = strict,
+            gt = gt,
+            ge = ge,
+            lt = lt,
+            le = le,
+            multiple_of = multiple_of,
+            allow_inf_nan = allow_inf_nan
+        )
     )
 
 
