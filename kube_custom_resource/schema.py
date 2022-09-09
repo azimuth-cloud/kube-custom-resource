@@ -70,6 +70,23 @@ class Enum(enum.Enum):
         field_schema.pop("title", None)
 
 
+class Any:
+    """
+    Type for a value that can be any type.
+    """
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema["x-kubernetes-preserve-unknown-fields"] = True
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        return v
+
+
 class Dict(typing.Dict):
     """
     Dict whose JSON-Schema includes the custom attribute to prevent Kubernetes
@@ -272,13 +289,17 @@ class BaseModel(PydanticModel):
         return super().json(**kwargs)
 
     @classmethod
-    def schema(cls, *args, **kwargs):
+    def schema(cls, *args, include_defaults = False, **kwargs):
         schema = super().schema(*args, **kwargs)
         # If the schema has definitions defined, resolve $refs and remove them
         if "definitions" in schema:
             resolve_refs(schema, schema.pop("definitions"))
-        # Remove defaults from the schema as they cause Kubernetes to rewrite the schema
-        # We would rather they are applied at model instantiation time as rewriting the
-        # Kubernetes objects themselves can have unintended side-effects
-        remove_fields(schema, "default")
+        # Unless explicitly included, we remove defaults from the schema as they cause
+        # Kubernetes to rewrite the schema
+        # In most cases, it is better that defaults are applied at model instantiation time
+        # as rewriting the Kubernetes objects themselves can have unintended side-effects
+        # However in some cases it is more appropriate for the defaults to be "locked in" at
+        # creation time
+        if not include_defaults:
+            remove_fields(schema, "default")
         return schema

@@ -48,7 +48,11 @@ class CustomResourceDefinition:
     # The versions for the resource, indexed by name
     versions: typing.Dict[str, CustomResourceDefinitionVersion]
 
-    def kubernetes_resource(self) -> typing.Dict[str, typing.Any]:
+    def kubernetes_resource(
+        self,
+        /,
+        include_defaults: bool = False
+    ) -> typing.Dict[str, typing.Any]:
         return {
             "apiVersion": "apiextensions.k8s.io/v1",
             "kind": "CustomResourceDefinition",
@@ -71,7 +75,9 @@ class CustomResourceDefinition:
                         "served": True,
                         "storage": version.storage,
                         "schema": {
-                            "openAPIV3Schema": version.model.schema(),
+                            "openAPIV3Schema": version.model.schema(
+                                include_defaults = include_defaults
+                            ),
                         },
                         "subresources": version.subresources,
                         "additionalPrinterColumns": version.printer_columns,
