@@ -218,7 +218,8 @@ class StructuralUnion:
             field_schema["description"] = cls.__doc__
         field_schema["anyOf"] = []
         for type in cls.__types__:
-            schema = type.schema()
+            # The schema is cached, so make sure to copy it before modifying it
+            schema = copy.deepcopy(type.schema())
             # In order to qualify as a structural schema, the schema of the union itself
             # must include all the possible properties
             field_schema["properties"].update(copy.deepcopy(schema["properties"]))
