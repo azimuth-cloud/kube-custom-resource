@@ -75,7 +75,7 @@ class CustomResourceDefinition:
                         "served": True,
                         "storage": version.storage,
                         "schema": {
-                            "openAPIV3Schema": version.model.schema(
+                            "openAPIV3Schema": version.model.model_json_schema(
                                 include_defaults = include_defaults
                             ),
                         },
@@ -173,7 +173,7 @@ class CustomResourceRegistry:
         """
         api_group, version = resource["apiVersion"].split("/")
         model = self._crds[(api_group, resource["kind"])].versions[version].model
-        return model.parse_obj(resource)
+        return model.model_validate(resource)
 
     def __iter__(self):
         # Produce the CRDs when iterated
