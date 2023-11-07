@@ -7,6 +7,7 @@ from pydantic_core import CoreSchema, core_schema
 
 from pydantic import (
     BaseModel as PydanticModel,
+    AnyUrl as PydanticAnyUrl,
     AnyHttpUrl as PydanticAnyHttpUrl,
     TypeAdapter,
     StringConstraints,
@@ -169,6 +170,7 @@ class ValidateStrAs:
         )
 
 
+AnyUrl = t.Annotated[str, ValidateStrAs(PydanticAnyUrl)]
 AnyHttpUrl = t.Annotated[str, ValidateStrAs(PydanticAnyHttpUrl)]
 
 
@@ -244,11 +246,13 @@ class Nullable:
         # We don't want to produce the anyOf schema that Optional would normally produce,
         # as it is not valid OpenAPI
         # Instead, we want to produce the schema for the wrapped type with nullable set
-        json_schema = handler(core_schema["schema"])
-        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema = handler(core_schema)
+        json_schema = resolve_refs(json_schema, handler)
+        any_of = json_schema.pop("anyOf")
+        non_null_schema = next(s for s in any_of if s.get("type") != "null")
+        json_schema.update(non_null_schema)
         json_schema["nullable"] = True
         return json_schema
-
 
 
 OptionalT = t.TypeVar("OptionalT")
