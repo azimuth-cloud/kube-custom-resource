@@ -1,6 +1,5 @@
-import copy
 import enum
-import typing
+import typing as t
 
 import annotated_types
 
@@ -8,6 +7,8 @@ from pydantic_core import CoreSchema, core_schema
 
 from pydantic import (
     BaseModel as PydanticModel,
+    AnyHttpUrl as PydanticAnyHttpUrl,
+    TypeAdapter,
     StringConstraints,
     AllowInfNan,
     Strict,
@@ -17,43 +18,42 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 
 
-def resolve_refs(schema, definitions):
+def resolve_refs(schema: t.Any, handler: GetJsonSchemaHandler) -> t.Any:
     """
-    Recursively resolve $refs in the given schema using the definitions.
+    Recursively resolve $refs in the given schema using the given handler.
     """
     if isinstance(schema, dict):
-        if "allOf" in schema and len(schema["allOf"]) == 1:
-            # Where the schema has an allOf with a single item, just put the
-            # fields from the item onto the schema
-            items = schema.pop("allOf")[0]
-            resolve_refs(items, definitions)
-            schema.update(items)
-        elif "$ref" in schema:
-            ref = schema.pop("$ref").removeprefix("#/$defs/")
-            referenced = definitions[ref]
-            resolve_refs(referenced, definitions)
-            schema.update(definitions[ref])
-        else:
-            for value in schema.values():
-                resolve_refs(value, definitions)
+        # If the schema is a ref schema, resolve it using the handler
+        # This resolves a single depth of refs, so we must also recurse
+        schema_new = {
+            k: resolve_refs(v, handler)
+            for k, v in handler.resolve_ref_schema(schema).items()
+        }
+        # Where the schema has an allOf with a single item, just put the
+        # fields from the item onto the schema
+        if "allOf" in schema_new and len(schema_new["allOf"]) == 1:
+            schema_new.update(schema_new.pop("allOf")[0])
+        return schema_new
     elif isinstance(schema, list):
-        for item in schema:
-            resolve_refs(item, definitions)
+        return [resolve_refs(item, handler) for item in schema]
+    else:
+        return schema
 
 
-def remove_fields(schema, *fields):
+def remove_fields(schema: t.Any, *fields: str) -> t.Any:
     """
     Recursively remove the specified fields from all the types in the schema.
     """
     if isinstance(schema, dict):
-        if "type" in schema:
-            for field in fields:
-                schema.pop(field, None)
-        for item in schema.values():
-            remove_fields(item, *fields)
+        return {
+            k: remove_fields(v, *fields)
+            for k, v in schema.items()
+            if "type" not in schema or k not in fields
+        }
     elif isinstance(schema, list):
-        for item in schema:
-            remove_fields(item, *fields)
+        return [remove_fields(item, *fields) for item in schema]
+    else:
+        return schema
 
 
 def snake_to_pascal(name):
@@ -83,21 +83,11 @@ class Enum(enum.Enum):
         return json_schema
 
 
-class Any:
+class XKubernetesPreserveUnknownFields:
     """
-    Type for a value that can be any type.
+    Type annotation that adds the x-kubernetes-preserve-unknown-fields property
+    to the generated schema.
     """
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        source_type: typing.Any,
-        handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        instance_schema = core_schema.is_instance_schema(cls)
-        any_schema = handler.generate_schema(typing.Any)
-        non_instance_schema = core_schema.no_info_after_validator_function(cls, any_schema)
-        return core_schema.union_schema([instance_schema, non_instance_schema])
-
     @classmethod
     def __get_pydantic_json_schema__(
         cls,
@@ -110,58 +100,28 @@ class Any:
         return json_schema
 
 
-KeyType = typing.TypeVar("KeyType")
-ValueType = typing.TypeVar("ValueType")
-class Dict(typing.Dict[KeyType, ValueType]):
+Any = t.Annotated[t.Any, XKubernetesPreserveUnknownFields]
+
+
+KeyT = t.TypeVar("KeyT")
+ValueT = t.TypeVar("ValueT")
+Dict = t.Annotated[t.Dict[KeyT, ValueT], XKubernetesPreserveUnknownFields]
+
+
+class XKubernetesIntOrString:
     """
-    Dict whose JSON-Schema includes the custom attribute to prevent Kubernetes
-    pruning unknown properties.
-    """
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        source_type: typing.Any,
-        handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        instance_schema = core_schema.is_instance_schema(cls)
-        args = typing.get_args(source_type)
-        if args:
-            dict_schema = handler.generate_schema(typing.Dict[args[0], args[1]])
-        else:
-            dict_schema = handler.generate_schema(typing.Dict)
-        non_instance_schema = core_schema.no_info_after_validator_function(cls, dict_schema)
-        return core_schema.union_schema([instance_schema, non_instance_schema])
-
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls,
-        core_schema: CoreSchema,
-        handler: GetJsonSchemaHandler
-    ) -> JsonSchemaValue:
-        json_schema = handler(core_schema)
-        json_schema = handler.resolve_ref_schema(json_schema)
-        json_schema["x-kubernetes-preserve-unknown-fields"] = True
-        return json_schema
-
-
-class IntOrString(str):
-    """
-    Type for a value that can be specified as an integer or a string.
-
-    The value will resolve to a string and the generated schema will include the
-    Kubernetes custom schema attribute 'x-kubernetes-int-or-string'.
+    Type annotation that adds the x-kubernetes-int-or-string property to the generated schema.
     """
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        source_type: typing.Any,
+        source_type: t.Any,
         handler: GetCoreSchemaHandler
     ) -> CoreSchema:
-        return core_schema.union_schema(
-            [
-                core_schema.int_schema(),
-                core_schema.str_schema(),
-            ]
+        # Validate the value as a union of int and str, but convert to a string after
+        return core_schema.no_info_after_validator_function(
+            str,
+            handler.generate_schema(t.Union[str, int])
         )
 
     @classmethod
@@ -176,8 +136,40 @@ class IntOrString(str):
         return json_schema
 
 
+IntOrString = t.Annotated[str, XKubernetesIntOrString]
+
+
 def constr(**kwargs):
-    return typing.Annotated[str, StringConstraints(**kwargs)]
+    return t.Annotated[str, StringConstraints(**kwargs)]
+
+
+class ValidateStrAs:
+    """
+    Type annotation that allows a str to be annotated with validation from another type.
+    """
+    def __init__(self, validation_type):
+        self.validation_type = validation_type
+        self.type_adapter = TypeAdapter(self.validation_type)
+
+    def __get_pydantic_core_schema__(
+        self,
+        source_type: t.Any,
+        handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        # Validate the value as the given validation type, but convert back to a string after
+        json_schema = core_schema.no_info_after_validator_function(
+            str,
+            handler.generate_schema(self.validation_type)
+        )
+        return core_schema.json_or_python_schema(
+            json_schema = json_schema,
+            python_schema = json_schema,
+            # When serializing, just use the string
+            serialization = core_schema.plain_serializer_function_ser_schema(lambda x: x)
+        )
+
+
+AnyHttpUrl = t.Annotated[str, ValidateStrAs(PydanticAnyHttpUrl)]
 
 
 class _ConvertExclusiveMinMax:
@@ -206,14 +198,14 @@ class _ConvertExclusiveMinMax:
 
 def conint(
     *,
-    strict: typing.Optional[bool] = None,
-    gt: typing.Optional[int] = None,
-    ge: typing.Optional[int] = None,
-    lt: typing.Optional[int] = None,
-    le: typing.Optional[int] = None,
-    multiple_of: typing.Optional[int] = None
-) -> typing.Type[int]:
-    return typing.Annotated[
+    strict: t.Optional[bool] = None,
+    gt: t.Optional[int] = None,
+    ge: t.Optional[int] = None,
+    lt: t.Optional[int] = None,
+    le: t.Optional[int] = None,
+    multiple_of: t.Optional[int] = None
+) -> t.Type[int]:
+    return t.Annotated[
         int,
         Strict(strict) if strict is not None else None,
         annotated_types.Interval(gt = gt, ge = ge, lt = lt, le = le),
@@ -224,15 +216,15 @@ def conint(
 
 def confloat(
     *,
-    strict: typing.Optional[bool] = None,
-    gt: typing.Optional[float] = None,
-    ge: typing.Optional[float] = None,
-    lt: typing.Optional[float] = None,
-    le: typing.Optional[float] = None,
-    multiple_of: typing.Optional[float] = None,
-    allow_inf_nan: typing.Optional[bool] = None,
-) -> typing.Type[float]:
-    return typing.Annotated[
+    strict: t.Optional[bool] = None,
+    gt: t.Optional[float] = None,
+    ge: t.Optional[float] = None,
+    lt: t.Optional[float] = None,
+    le: t.Optional[float] = None,
+    multiple_of: t.Optional[float] = None,
+    allow_inf_nan: t.Optional[bool] = None,
+) -> t.Type[float]:
+    return t.Annotated[
         float,
         Strict(strict) if strict is not None else None,
         annotated_types.Interval(gt = gt, ge = ge, lt = lt, le = le),
@@ -242,36 +234,33 @@ def confloat(
     ]
 
 
+class Nullable:
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        # We don't want to produce the anyOf schema that Optional would normally produce,
+        # as it is not valid OpenAPI
+        # Instead, we want to produce the schema for the wrapped type with nullable set
+        json_schema = handler(core_schema["schema"])
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["nullable"] = True
+        return json_schema
+
+
+
+OptionalT = t.TypeVar("OptionalT")
+Optional = t.Annotated[t.Optional[OptionalT], Nullable]
+
+
 class StructuralUnion:
     """
-    Type for a structural union, i.e. a union with a structural schema.
+    Type annotation for a structural union, i.e. a union with a structural schema.
 
     See https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#specifying-a-structural-schema.
     """
-    def __class_getitem__(cls, types):
-        name = f"{cls.__name__}[{','.join(t.__name__ for t in types)}]"
-        return type(name, (cls, ), {}, __types__ = types)
-
-    def __init_subclass__(cls, /, __types__, **kwargs):
-        # Structural unions are only supported for schema models
-        if not all(issubclass(t, BaseModel) for t in __types__):
-            raise TypeError("structural unions are only supported between schema models")
-        super().__init_subclass__(**kwargs)
-        cls.__types__ = __types__
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        source_type: typing.Any,
-        handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        return core_schema.union_schema(
-            [
-                handler.generate_schema(t)
-                for t in source_type.__types__
-            ]
-        )
-
     @classmethod
     def __get_pydantic_json_schema__(
         cls,
@@ -280,22 +269,24 @@ class StructuralUnion:
     ) -> JsonSchemaValue:
         any_of = []
         properties = {}
-        for union_type in cls.__types__:
-            union_type_schema = copy.deepcopy(union_type.model_json_schema())
+        for choice_schema in core_schema.get("choices", []):
+            choice_json_schema = handler(choice_schema)
+            choice_json_schema = resolve_refs(choice_json_schema, handler)
             # In order to qualify as a structural schema, the schema of the union itself
             # must include all the possible properties
-            properties.update(copy.deepcopy(union_type_schema["properties"]))
+            properties.update(choice_json_schema.get("properties", {}))
             # Schemas in anyOf are not permitted to contain particular keys
-            remove_fields(
-                union_type_schema,
-                "description",
+            choice_json_schema = remove_fields(
+                choice_json_schema,
                 "type",
+                "title",
+                "description",
                 "default",
                 "additionalProperties",
                 "nullable",
                 "x-kubernetes-preserve-unknown-fields",
             )
-            any_of.append(union_type_schema)
+            any_of.append(choice_json_schema)
         json_schema = {
             "type": "object",
             "properties": properties,
@@ -334,11 +325,13 @@ class BaseModel(
         handler: GetJsonSchemaHandler
     ) -> JsonSchemaValue:
         json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
+        #####
         # Post-process the generated schema to make it compatible with a Kubernetes CRD
+        #####
+        # Resolve all the refs
+        json_schema = resolve_refs(json_schema, handler)
         # Remove the titles
-        json_schema.pop("title", None)
-        for prop in json_schema.get("properties", {}).values():
-            prop.pop("title", None)
+        json_schema = remove_fields(json_schema, "title")
         # When extra fields are allowed, stop Kubernetes pruning them
         if cls.model_config.get("extra") == "allow":
             json_schema["x-kubernetes-preserve-unknown-fields"] = True
@@ -347,15 +340,10 @@ class BaseModel(
     @classmethod
     def model_json_schema(cls, *args, include_defaults = False, **kwargs):
         schema = super().model_json_schema(*args, **kwargs)
-        # If the schema has definitions defined, resolve $refs and remove them
-        if "$defs" in schema:
-            resolve_refs(schema, schema.pop("$defs"))
         # Unless explicitly included, we remove defaults from the schema as they cause
-        # Kubernetes to rewrite the schema
+        # Kubernetes to rewrite objects
         # In most cases, it is better that defaults are applied at model instantiation time
         # as rewriting the Kubernetes objects themselves can have unintended side-effects
         # However in some cases it is more appropriate for the defaults to be "locked in" at
         # creation time
-        if not include_defaults:
-            remove_fields(schema, "default")
-        return schema
+        return schema if include_defaults else remove_fields(schema, "default")

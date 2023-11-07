@@ -234,8 +234,7 @@ class Metadata(BaseModel):
 class CustomResource(
     BaseModel,
     metaclass = CustomResourceMetaclass,
-    abstract = True,
-    extra = "allow"
+    abstract = True
 ):
     """
     Base class for defining custom resources.
