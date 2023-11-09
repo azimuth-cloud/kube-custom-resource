@@ -378,6 +378,7 @@ class BaseModel(
         # When extra fields are allowed, stop Kubernetes pruning them
         if cls.model_config.get("extra") == "allow":
             json_schema["x-kubernetes-preserve-unknown-fields"] = True
+            json_schema.pop("additionalProperties", None)
         return json_schema
 
     @classmethod
