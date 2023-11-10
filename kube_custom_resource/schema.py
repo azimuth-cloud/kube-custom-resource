@@ -49,14 +49,14 @@ def schema_apply(schema, func, pre = False):
         if "items" in schema_new:
             schema_new["items"] = schema_apply(schema_new["items"], func, pre)
     # For anyOf, allOf and oneOf, we need to apply the function to each schema
-    elif "anyOf" in schema_new:
+    if "anyOf" in schema_new:
         schema_new["anyOf"] = [schema_apply(s, func, pre) for s in schema_new["anyOf"]]
-    elif "allOf" in schema_new:
+    if "allOf" in schema_new:
         schema_new["allOf"] = [schema_apply(s, func, pre) for s in schema_new["allOf"]]
-    elif "oneOf" in schema_new:
+    if "oneOf" in schema_new:
         schema_new["oneOf"] = [schema_apply(s, func, pre) for s in schema_new["oneOf"]]
     # not is a single schema
-    elif "not" in schema_new:
+    if "not" in schema_new:
         schema_new["not"] = schema_apply(schema_new["not"], func, pre)
     # Finally, apply the function to the schema itself if required
     return schema_new if pre else func(schema_new)
