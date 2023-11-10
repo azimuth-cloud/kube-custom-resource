@@ -6,7 +6,6 @@ import types
 import typing
 
 from .custom_resource import CustomResource, Scope
-from .schema import BaseModel
 
 
 @dataclasses.dataclass
@@ -17,7 +16,7 @@ class CustomResourceDefinitionVersion:
     # The name of the version
     name: str
     # The model that defines the schema for the version
-    model: BaseModel
+    model: CustomResource
     # The subresources for the version
     subresources: typing.Dict[str, typing.Any]
     # A list of printer column definitions for the version
@@ -61,7 +60,7 @@ class CustomResourceDefinition:
             },
             "spec": {
                 "group": self.api_group,
-                "scope": self.scope,
+                "scope": self.scope.value,
                 "names": {
                     "kind": self.kind,
                     "singular": self.singular_name,
@@ -75,7 +74,7 @@ class CustomResourceDefinition:
                         "served": True,
                         "storage": version.storage,
                         "schema": {
-                            "openAPIV3Schema": version.model.schema(
+                            "openAPIV3Schema": version.model.model_json_schema(
                                 include_defaults = include_defaults
                             ),
                         },
@@ -166,15 +165,30 @@ class CustomResourceRegistry:
             for _, name, _ in pkgutil.iter_modules(module.__path__):
                 self.discover_models(importlib.import_module(f".{name}", module.__name__))
 
+    def get_crd(self, api_group, kind) -> typing.Type[CustomResourceDefinition]:
+        """
+        Returns the CRD definition for the given API group and kind.
+        """
+        return self._crds[(api_group, kind)]
+
+    def get_model(self, api_group, version, kind) -> typing.Type[CustomResource]:
+        """
+        Returns the model associated with the given API group, version and kind.
+        """
+        return self.get_crd(api_group, kind).versions[version].model
+
     def get_model_instance(self, resource) -> CustomResource:
         """
         Given a Kubernetes resource, return an instance of the model associated with the
         API version and kind.
         """
         api_group, version = resource["apiVersion"].split("/")
-        model = self._crds[(api_group, resource["kind"])].versions[version].model
-        return model.parse_obj(resource)
+        model = self.get_model(api_group, version, resource["kind"])
+        return model.model_validate(resource)
 
     def __iter__(self):
         # Produce the CRDs when iterated
         yield from self._crds.values()
+
+    def __len__(self):
+        return len(self._crds)

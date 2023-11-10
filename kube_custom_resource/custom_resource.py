@@ -3,7 +3,10 @@ import datetime
 import re
 import typing
 
-from pydantic import Extra, Field
+from pydantic_core import CoreSchema
+
+from pydantic import Field, GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
 
 from .schema import BaseModel, Enum
 
@@ -236,24 +239,6 @@ class CustomResource(
     """
     Base class for defining custom resources.
     """
-    class Config(BaseModel.Config):
-        # Preserve any extra properties
-        extra = Extra.allow
-
-        @classmethod
-        def schema_extra(cls, schema, model):
-            """
-            Remove the API version, kind and metadata from the schema, as they are not
-            required for a valid CRD.
-
-            We want them in the model so they are available when we create an instance
-            of it from a Kubernetes resource.
-            """
-            super().schema_extra(schema, model)
-            for key in ["apiVersion", "kind", "metadata"]:
-                schema["properties"].pop(key)
-                schema["required"].remove(key)
-
     api_version: str = Field(
         ...,
         description = "The API version of the resource."
@@ -265,4 +250,18 @@ class CustomResource(
     metadata: Metadata = Field(
         ...,
         description = "The metadata for the resource."
-    )        
+    )
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
+        # Remove the API version, kind and metadata from the schema as they are
+        # not required for a valid CRD
+        for key in ["apiVersion", "kind", "metadata"]:
+            json_schema["properties"].pop(key)
+            json_schema["required"].remove(key)
+        return json_schema
