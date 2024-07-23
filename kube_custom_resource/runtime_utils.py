@@ -31,9 +31,9 @@ def create_controller_for_model(
     reconcile_func: runtime.ReconcileFunc,
     *,
     namespace: typing.Optional[str] = None,
-    worker_count: typing.Optional[int] = None,
+    worker_pool: typing.Optional[runtime.WorkerPool] = None,
     requeue_max_backoff: typing.Optional[int] = None
-):
+) -> runtime.Controller:
     """
     Creates a controller from the specified model.
     """
@@ -47,7 +47,7 @@ def create_controller_for_model(
         model._meta.kind,
         reconcile_func,
         namespace = namespace,
-        worker_count = worker_count,
+        worker_pool = worker_pool,
         requeue_max_backoff = requeue_max_backoff
     )
 
