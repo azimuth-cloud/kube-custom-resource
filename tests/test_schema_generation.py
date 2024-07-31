@@ -3,7 +3,7 @@ import kube_custom_resource as kcr
 import models
 
 
-API_GROUP = "test.kcr.stackhpc.com"
+API_GROUP = "test.kcr.azimuth-cloud.io"
 
 
 registry = kcr.CustomResourceRegistry(API_GROUP)
@@ -18,10 +18,10 @@ MANUFACTURER_CRD_EXPECTED = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
     "metadata": {
-        "name": "manufacturers.test.kcr.stackhpc.com"
+        "name": "manufacturers.test.kcr.azimuth-cloud.io"
     },
     "spec": {
-        "group": "test.kcr.stackhpc.com",
+        "group": "test.kcr.azimuth-cloud.io",
         "scope": "Cluster",
         "names": {
             "kind": "Manufacturer",
@@ -108,10 +108,10 @@ CAR_CRD_EXPECTED = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
     "metadata": {
-        "name": "cars.test.kcr.stackhpc.com"
+        "name": "cars.test.kcr.azimuth-cloud.io"
     },
     "spec": {
-        "group": "test.kcr.stackhpc.com",
+        "group": "test.kcr.azimuth-cloud.io",
         "scope": "Namespaced",
         "names": {
             "kind": "Car",
