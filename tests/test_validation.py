@@ -10,7 +10,7 @@ import models
 from models import v1alpha1 as api
 
 
-API_GROUP = "test.kcr.stackhpc.com"
+API_GROUP = "test.kcr.azimuth-cloud.io"
 
 
 registry = kcr.CustomResourceRegistry(API_GROUP)
