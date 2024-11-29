@@ -371,7 +371,8 @@ class BaseModel(
         core_schema: CoreSchema,
         handler: GetJsonSchemaHandler
     ) -> JsonSchemaValue:
-        json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
         #####
         # Post-process the generated schema to make it compatible with a Kubernetes CRD
         #####
