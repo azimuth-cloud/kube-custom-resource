@@ -253,14 +253,8 @@ class CustomResource(
     )
 
     @classmethod
-    def __get_pydantic_json_schema__(
-        cls,
-        core_schema: CoreSchema,
-        handler: GetJsonSchemaHandler
-    ) -> JsonSchemaValue:
-        json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
-        # Remove the API version, kind and metadata from the schema as they are
-        # not required for a valid CRD
+    def model_json_schema(cls, *args, **kwargs):
+        json_schema = super().model_json_schema(*args, **kwargs)
         for key in ["apiVersion", "kind", "metadata"]:
             json_schema["properties"].pop(key)
             json_schema["required"].remove(key)
