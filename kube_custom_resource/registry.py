@@ -47,6 +47,13 @@ class CustomResourceDefinition:
     # The versions for the resource, indexed by name
     versions: typing.Dict[str, CustomResourceDefinitionVersion]
 
+    @property
+    def full_name(self):
+        """
+        The fully qualified name of the CRD.
+        """
+        return f"{self.plural_name}.{self.api_group}"
+
     def kubernetes_resource(
         self,
         /,
@@ -56,7 +63,7 @@ class CustomResourceDefinition:
             "apiVersion": "apiextensions.k8s.io/v1",
             "kind": "CustomResourceDefinition",
             "metadata": {
-                "name": f"{self.plural_name}.{self.api_group}",
+                "name": self.full_name,
             },
             "spec": {
                 "group": self.api_group,
@@ -87,7 +94,7 @@ class CustomResourceDefinition:
         }
 
 
-def iscustomresourcemodel(obj):
+def iscustomresourcemodel(obj: typing.Any) -> bool:
     """
     Utility function to check if a given object is a custom resource model.
     """
@@ -113,7 +120,7 @@ class CustomResourceRegistry:
         # The indexed CRDs indexed by a tuple of (API group, kind)
         self._crds: typing.Dict[typing.Tuple[str, str], CustomResourceDefinition] = {}
 
-    def register_model(self, model: CustomResource):
+    def register_model(self, model: typing.Type[CustomResource]) -> typing.Type[CustomResource]:
         """
         Registers the given model as providing a version of a CRD.
         """
@@ -165,19 +172,19 @@ class CustomResourceRegistry:
             for _, name, _ in pkgutil.iter_modules(module.__path__):
                 self.discover_models(importlib.import_module(f".{name}", module.__name__))
 
-    def get_crd(self, api_group, kind) -> typing.Type[CustomResourceDefinition]:
+    def get_crd(self, api_group: str, kind: str) -> CustomResourceDefinition:
         """
-        Returns the CRD definition for the given API group and kind.
+        Returns the custom resource definition for the given API group and kind.
         """
         return self._crds[(api_group, kind)]
 
-    def get_model(self, api_group, version, kind) -> typing.Type[CustomResource]:
+    def get_model(self, api_group: str, version: str, kind: str) -> typing.Type[CustomResource]:
         """
         Returns the model associated with the given API group, version and kind.
         """
         return self.get_crd(api_group, kind).versions[version].model
 
-    def get_model_instance(self, resource) -> CustomResource:
+    def get_model_instance(self, resource: typing.Dict[str, typing.Any]) -> CustomResource:
         """
         Given a Kubernetes resource, return an instance of the model associated with the
         API version and kind.
@@ -190,5 +197,5 @@ class CustomResourceRegistry:
         # Produce the CRDs when iterated
         yield from self._crds.values()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._crds)
