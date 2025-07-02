@@ -13,7 +13,8 @@ class CustomResourceDefinitionVersion:
     """
     Storage object for CRD version information.
     """
-    # The name of the version
+
+    # The name of the version
     name: str
     # The model that defines the schema for the version
     model: CustomResource
@@ -30,13 +31,14 @@ class CustomResourceDefinition:
     """
     Storage object for CRD information.
     """
+
     # The API group for the resource
     api_group: str
-    # The kind of the resource
+    # The kind of the resource
     kind: str
-    # The singular name of the resource
+    # The singular name of the resource
     singular_name: str
-    # The plural name of the resource
+    # The plural name of the resource
     plural_name: str
     # The scope of the resource
     scope: Scope
@@ -48,9 +50,7 @@ class CustomResourceDefinition:
     versions: typing.Dict[str, CustomResourceDefinitionVersion]
 
     def kubernetes_resource(
-        self,
-        /,
-        include_defaults: bool = False
+        self, /, include_defaults: bool = False
     ) -> typing.Dict[str, typing.Any]:
         return {
             "apiVersion": "apiextensions.k8s.io/v1",
@@ -75,15 +75,15 @@ class CustomResourceDefinition:
                         "storage": version.storage,
                         "schema": {
                             "openAPIV3Schema": version.model.model_json_schema(
-                                include_defaults = include_defaults
+                                include_defaults=include_defaults
                             ),
                         },
                         "subresources": version.subresources,
                         "additionalPrinterColumns": version.printer_columns,
                     }
                     for version in self.versions.values()
-                ]
-            }
+                ],
+            },
         }
 
 
@@ -92,8 +92,9 @@ def iscustomresourcemodel(obj):
     Utility function to check if a given object is a custom resource model.
     """
     return (
-        inspect.isclass(obj) and
-        issubclass(obj, CustomResource) and
+        inspect.isclass(obj)
+        and issubclass(obj, CustomResource)
+        and
         # Only consider concrete custom resource models
         hasattr(obj, "_meta")
     )
@@ -103,10 +104,9 @@ class CustomResourceRegistry:
     """
     Class for indexing and querying available custom resources.
     """
+
     def __init__(
-        self,
-        api_group: str,
-        categories: typing.Optional[typing.List[str]] = None
+        self, api_group: str, categories: typing.Optional[typing.List[str]] = None
     ):
         self._api_group = api_group
         self._categories = categories or []
@@ -134,7 +134,9 @@ class CustomResourceRegistry:
             model._meta.plural_name,
             model._meta.scope,
             # Merge but dedupe the short names given by each version
-            list(set(getattr(existing_crd, "short_names", []) + model._meta.short_names)),
+            list(
+                set(getattr(existing_crd, "short_names", []) + model._meta.short_names)
+            ),
             self._categories,
             # Add the new version
             dict(
@@ -145,10 +147,10 @@ class CustomResourceRegistry:
                         model,
                         model._meta.subresources,
                         model._meta.printer_columns,
-                        model._meta.storage_version
+                        model._meta.storage_version,
                     )
-                }
-            )
+                },
+            ),
         )
         return model
 
@@ -157,13 +159,17 @@ class CustomResourceRegistry:
         Discovers and registers all the custom resource models in the given module.
         """
         # Register all the models in this module
-        for _, model in inspect.getmembers(module, lambda obj: iscustomresourcemodel(obj)):
+        for _, model in inspect.getmembers(
+            module, lambda obj: iscustomresourcemodel(obj)
+        ):
             self.register_model(model)
         # Register all the models in the submodules of the given module
         # Only modules with submodules have a __path__, it seems
         if hasattr(module, "__path__"):
             for _, name, _ in pkgutil.iter_modules(module.__path__):
-                self.discover_models(importlib.import_module(f".{name}", module.__name__))
+                self.discover_models(
+                    importlib.import_module(f".{name}", module.__name__)
+                )
 
     def get_crd(self, api_group, kind) -> typing.Type[CustomResourceDefinition]:
         """

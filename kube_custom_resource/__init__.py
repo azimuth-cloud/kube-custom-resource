@@ -1,2 +1,2 @@
-from .custom_resource import CustomResource, Scope
-from .registry import CustomResourceRegistry
+from .custom_resource import CustomResource, Scope  # noqa: F401
+from .registry import CustomResourceRegistry  # noqa: F401

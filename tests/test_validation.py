@@ -1,14 +1,11 @@
 import copy
 
-import pytest
-
-import pydantic as p
-
-import kube_custom_resource as kcr
-
 import models
+import pydantic as p
+import pytest
 from models import v1alpha1 as api
 
+import kube_custom_resource as kcr
 
 API_GROUP = "test.kcr.azimuth-cloud.io"
 
@@ -35,6 +32,7 @@ VALID_MANUFACTURER = {
         ],
     },
 }
+
 
 def test_validate_valid_manufacturer():
     """
@@ -73,6 +71,7 @@ VALID_CAR = {
     },
 }
 
+
 def test_validate_valid_car():
     """
     Tests that a valid car resource can be loaded.
@@ -83,7 +82,7 @@ def test_validate_valid_car():
     assert car.metadata.name == "john-doe-escort"
     assert car.spec.manufacturer == "ford"
     assert car.spec.model == "escort"
-    assert type(car.spec.engine) == api.PetrolEngine
+    assert type(car.spec.engine) == api.PetrolEngine  # noqa: E721
     assert car.spec.engine.petrol.capacity == 2
     assert car.spec.colour == api.Colour.BLACK
     assert car.spec.owner is None
