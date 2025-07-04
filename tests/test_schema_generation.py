@@ -1,7 +1,7 @@
-import kube_custom_resource as kcr
-
+# ruff: noqa: E501
 import models
 
+import kube_custom_resource as kcr
 
 API_GROUP = "test.kcr.azimuth-cloud.io"
 
@@ -17,9 +17,7 @@ def test_model_discovery_found_two_models():
 MANUFACTURER_CRD_EXPECTED = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
-    "metadata": {
-        "name": "manufacturers.test.kcr.azimuth-cloud.io"
-    },
+    "metadata": {"name": "manufacturers.test.kcr.azimuth-cloud.io"},
     "spec": {
         "group": "test.kcr.azimuth-cloud.io",
         "scope": "Cluster",
@@ -28,7 +26,7 @@ MANUFACTURER_CRD_EXPECTED = {
             "singular": "manufacturer",
             "plural": "manufacturers",
             "shortNames": [],
-            "categories": []
+            "categories": [],
         },
         "versions": [
             {
@@ -44,57 +42,46 @@ MANUFACTURER_CRD_EXPECTED = {
                                 "properties": {
                                     "founded": {
                                         "description": "The year the company was founded.",
-                                        "x-kubernetes-int-or-string": True
+                                        "x-kubernetes-int-or-string": True,
                                     },
                                     "website": {
                                         "description": "The company website.",
                                         "format": "uri",
                                         "minLength": 1,
-                                        "type": "string"
+                                        "type": "string",
                                     },
                                     "models": {
                                         "description": "The models supported by this manufacturer.",
                                         "items": {
                                             "pattern": "^[a-z0-9]+$",
-                                            "type": "string"
+                                            "type": "string",
                                         },
                                         "minItems": 1,
-                                        "type": "array"
-                                    }
+                                        "type": "array",
+                                    },
                                 },
-                                "required": [
-                                    "founded",
-                                    "website",
-                                    "models"
-                                ],
-                                "type": "object"
+                                "required": ["founded", "website", "models"],
+                                "type": "object",
                             }
                         },
-                        "required": [
-                            "spec"
-                        ],
-                        "type": "object"
+                        "required": ["spec"],
+                        "type": "object",
                     }
                 },
-                "subresources": {
-                    "status": {}
-                },
+                "subresources": {"status": {}},
                 "additionalPrinterColumns": [
-                    {
-                        "name": "Founded",
-                        "type": "string",
-                        "jsonPath": ".spec.founded"
-                    },
+                    {"name": "Founded", "type": "string", "jsonPath": ".spec.founded"},
                     {
                         "name": "Age",
                         "type": "date",
-                        "jsonPath": ".metadata.creationTimestamp"
-                    }
-                ]
+                        "jsonPath": ".metadata.creationTimestamp",
+                    },
+                ],
             }
-        ]
-    }
+        ],
+    },
 }
+
 
 def test_manufacturer_crd():
     """
@@ -107,9 +94,7 @@ def test_manufacturer_crd():
 CAR_CRD_EXPECTED = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
-    "metadata": {
-        "name": "cars.test.kcr.azimuth-cloud.io"
-    },
+    "metadata": {"name": "cars.test.kcr.azimuth-cloud.io"},
     "spec": {
         "group": "test.kcr.azimuth-cloud.io",
         "scope": "Namespaced",
@@ -118,7 +103,7 @@ CAR_CRD_EXPECTED = {
             "singular": "car",
             "plural": "cars",
             "shortNames": [],
-            "categories": []
+            "categories": [],
         },
         "versions": [
             {
@@ -135,12 +120,12 @@ CAR_CRD_EXPECTED = {
                                     "manufacturer": {
                                         "description": "The manufacturer of the car.",
                                         "pattern": "^[a-zA-Z0-9-]+$",
-                                        "type": "string"
+                                        "type": "string",
                                     },
                                     "model": {
                                         "description": "The model of the car.",
                                         "pattern": "^[a-zA-Z0-9-]+$",
-                                        "type": "string"
+                                        "type": "string",
                                     },
                                     "engine": {
                                         "anyOf": [
@@ -150,17 +135,13 @@ CAR_CRD_EXPECTED = {
                                                         "properties": {
                                                             "capacity": {
                                                                 "exclusiveMinimum": True,
-                                                                "minimum": 0
+                                                                "minimum": 0,
                                                             }
                                                         },
-                                                        "required": [
-                                                            "capacity"
-                                                        ]
+                                                        "required": ["capacity"],
                                                     }
                                                 },
-                                                "required": [
-                                                    "petrol"
-                                                ]
+                                                "required": ["petrol"],
                                             },
                                             {
                                                 "properties": {
@@ -168,17 +149,13 @@ CAR_CRD_EXPECTED = {
                                                         "properties": {
                                                             "capacity": {
                                                                 "exclusiveMinimum": True,
-                                                                "minimum": 0
+                                                                "minimum": 0,
                                                             }
                                                         },
-                                                        "required": [
-                                                            "capacity"
-                                                        ]
+                                                        "required": ["capacity"],
                                                     }
                                                 },
-                                                "required": [
-                                                    "diesel"
-                                                ]
+                                                "required": ["diesel"],
                                             },
                                             {
                                                 "properties": {
@@ -186,18 +163,14 @@ CAR_CRD_EXPECTED = {
                                                         "properties": {
                                                             "maxPowerOutput": {
                                                                 "exclusiveMinimum": True,
-                                                                "minimum": 0
+                                                                "minimum": 0,
                                                             }
                                                         },
-                                                        "required": [
-                                                            "maxPowerOutput"
-                                                        ]
+                                                        "required": ["maxPowerOutput"],
                                                     }
                                                 },
-                                                "required": [
-                                                    "electric"
-                                                ]
-                                            }
+                                                "required": ["electric"],
+                                            },
                                         ],
                                         "description": "The engine for the car.",
                                         "properties": {
@@ -208,13 +181,11 @@ CAR_CRD_EXPECTED = {
                                                         "description": "The capacity of the engine in litres.",
                                                         "exclusiveMinimum": True,
                                                         "minimum": 0,
-                                                        "type": "integer"
+                                                        "type": "integer",
                                                     }
                                                 },
-                                                "required": [
-                                                    "capacity"
-                                                ],
-                                                "type": "object"
+                                                "required": ["capacity"],
+                                                "type": "object",
                                             },
                                             "diesel": {
                                                 "description": "Spec for a combustion engine.",
@@ -223,13 +194,11 @@ CAR_CRD_EXPECTED = {
                                                         "description": "The capacity of the engine in litres.",
                                                         "exclusiveMinimum": True,
                                                         "minimum": 0,
-                                                        "type": "integer"
+                                                        "type": "integer",
                                                     }
                                                 },
-                                                "required": [
-                                                    "capacity"
-                                                ],
-                                                "type": "object"
+                                                "required": ["capacity"],
+                                                "type": "object",
                                             },
                                             "electric": {
                                                 "description": "Spec for an electric engine.",
@@ -238,33 +207,26 @@ CAR_CRD_EXPECTED = {
                                                         "description": "The maximum power output of the engine in kW.",
                                                         "exclusiveMinimum": True,
                                                         "minimum": 0,
-                                                        "type": "integer"
+                                                        "type": "integer",
                                                     }
                                                 },
-                                                "required": [
-                                                    "maxPowerOutput"
-                                                ],
-                                                "type": "object"
-                                            }
+                                                "required": ["maxPowerOutput"],
+                                                "type": "object",
+                                            },
                                         },
-                                        "type": "object"
+                                        "type": "object",
                                     },
                                     "colour": {
                                         "description": "Enum of possible colours for a car.",
-                                        "enum": [
-                                            "White",
-                                            "Silver",
-                                            "Red",
-                                            "Black"
-                                        ],
-                                        "type": "string"
+                                        "enum": ["White", "Silver", "Red", "Black"],
+                                        "type": "string",
                                     },
                                     "owner": {
                                         "description": "The owner of the car.",
                                         "minLength": 1,
                                         "nullable": True,
                                         "pattern": "^[a-zA-Z0-9 ]*$",
-                                        "type": "string"
+                                        "type": "string",
                                     },
                                     "extras": {
                                         "additionalProperties": {
@@ -272,16 +234,16 @@ CAR_CRD_EXPECTED = {
                                         },
                                         "description": "Any extras for the car.",
                                         "type": "object",
-                                        "x-kubernetes-preserve-unknown-fields": True
-                                    }
+                                        "x-kubernetes-preserve-unknown-fields": True,
+                                    },
                                 },
                                 "required": [
                                     "manufacturer",
                                     "model",
                                     "engine",
-                                    "colour"
+                                    "colour",
                                 ],
-                                "type": "object"
+                                "type": "object",
                             },
                             "status": {
                                 "description": "Status for a car.",
@@ -293,50 +255,39 @@ CAR_CRD_EXPECTED = {
                                             "OnOrder",
                                             "Building",
                                             "Ready",
-                                            "Delayed"
+                                            "Delayed",
                                         ],
-                                        "type": "string"
+                                        "type": "string",
                                     }
                                 },
                                 "type": "object",
-                                "x-kubernetes-preserve-unknown-fields": True
-                            }
+                                "x-kubernetes-preserve-unknown-fields": True,
+                            },
                         },
-                        "required": [
-                            "spec"
-                        ],
-                        "type": "object"
+                        "required": ["spec"],
+                        "type": "object",
                     }
                 },
-                "subresources": {
-                    "status": {}
-                },
+                "subresources": {"status": {}},
                 "additionalPrinterColumns": [
                     {
                         "name": "Manufacturer",
                         "type": "string",
-                        "jsonPath": ".spec.manufacturer"
+                        "jsonPath": ".spec.manufacturer",
                     },
-                    {
-                        "name": "Model",
-                        "type": "string",
-                        "jsonPath": ".spec.model"
-                    },
-                    {
-                        "name": "Phase",
-                        "type": "string",
-                        "jsonPath": ".status.phase"
-                    },
+                    {"name": "Model", "type": "string", "jsonPath": ".spec.model"},
+                    {"name": "Phase", "type": "string", "jsonPath": ".status.phase"},
                     {
                         "name": "Age",
                         "type": "date",
-                        "jsonPath": ".metadata.creationTimestamp"
-                    }
-                ]
+                        "jsonPath": ".metadata.creationTimestamp",
+                    },
+                ],
             }
-        ]
-    }
+        ],
+    },
 }
+
 
 def test_car_crd():
     """
