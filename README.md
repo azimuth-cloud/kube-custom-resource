@@ -58,20 +58,27 @@ status:
 import datetime as dt
 import typing
 
+import annotated_types as at
 from pydantic import Field
 
 from kube_custom_resource import CustomResource, Scope, schema
+
+
+Command = typing.Annotated[
+    typing.List[schema.constr(min_length=1)],
+    at.Len(min_length = 1)
+]
 
 
 class JobTemplate(schema.BaseModel):
     """
     The job template for a cronjob.
     """
-    image: schema.constr(min_length = 1) = Field(
+    image: schema.constr(min_length=1) = Field(
         ..., # Required
         description="The image to use for jobs."
     )
-    command: typing.List[schema.constr(min_length = 1)] = Field(
+    command: Command = Field(
         ...,
         description="The command to execute for jobs."
     )
@@ -82,7 +89,7 @@ class CronJobSpec(schema.BaseModel):
     The spec for a cronjob.
     """
     # Could use pattern="<regex>" to do a tighter validation
-    schedule: schema.constr(min_length = 1) = Field(
+    schedule: schema.constr(min_length=1) = Field(
         ...,
         description="The schedule the cronjob should run with."
     )
@@ -94,7 +101,7 @@ class CronJobSpec(schema.BaseModel):
         False, # Default value
         description="Indicates whether the cronjob is paused."
     )
-    successful_jobs_history_limit: schema.conint(gt = 0) = Field(
+    successful_jobs_history_limit: schema.conint(gt=0) = Field(
         3,
         description="The number of successful jobs to keep."
     )
@@ -104,7 +111,7 @@ class ActiveJob(schema.BaseModel):
     """
     Represents an active job for a cronjob.
     """
-    name: schema.constr(min_length = 1) = Field(
+    name: schema.constr(min_length=1) = Field(
         ...,
         description="The name of the job."
     )
@@ -152,6 +159,7 @@ class CronJob(
         },
     ],
     # The scope of the custom resource, either NAMESPACED or CLUSTER
+    # Defaults to NAMESPACED if not given
     scope=Scope.NAMESPACED,
     # Names for the resource
     # By default, these are derived from the class name
@@ -183,7 +191,7 @@ registry = kcr.CustomResourceRegistry("myoperator.example.org", ["myoperator"])
 registry.discover_models(models)
 for crd in registry:
     # Create a Python dict containing the CustomResourceDefinition
-    obj = crd.kubernetes_resource(include_defaults = include_defaults)
+    obj = crd.kubernetes_resource()
     # apply obj to cluster using your favourite Kubernetes client
     # ...
 ```
