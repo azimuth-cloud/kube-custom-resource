@@ -2,11 +2,30 @@ import dataclasses
 import importlib
 import inspect
 import pkgutil
+import re
 import types
 import typing
 
 from .custom_resource import CustomResource, Scope
 
+
+def sort_api_versions(version):
+    m = re.fullmatch(r"v(\d+)(?:(alpha|beta)(\d+))?", version)
+    if not m:
+        raise ValueError(f"Invalid API version: {version}")
+
+    major = int(m.group(1))
+    stage = m.group(2)
+    revision = int(m.group(3) or 0)
+
+    # alpha < beta < stable
+    stability = {
+        "alpha": 0,
+        "beta": 1,
+        None: 2,
+    }[stage]
+
+    return major, stability, revision
 
 @dataclasses.dataclass
 class CustomResourceDefinitionVersion:
@@ -152,7 +171,23 @@ class CustomResourceRegistry:
                 },
             ),
         )
+        self.set_storage_version(self._crds[key])
         return model
+
+
+    def set_storage_version(self, crd):
+        """
+        Sort all available versions in a CRD and set the latest to be the storage version.
+        """
+        versions = getattr(crd, "versions")
+        version_list = sorted(list(versions.keys()), key=sort_api_versions)
+
+        for api_version in version_list:
+            version_spec = versions[api_version]
+            version_spec.storage = False
+        version_spec = versions[version_list[-1]]
+        version_spec.storage = True
+
 
     def discover_models(self, module: types.ModuleType):
         """
