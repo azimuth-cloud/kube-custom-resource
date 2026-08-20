@@ -6,7 +6,7 @@ import pydantic as p
 from kube_custom_resource import custom_resource as crd
 from kube_custom_resource import schema as s
 
-ModelsList = t.Annotated[t.List[s.constr(pattern=r"^[a-z0-9]+$")], a.Len(min_length=1)]
+ModelsList = t.Annotated[list[s.constr(pattern=r"^[a-z0-9]+$")], a.Len(min_length=1)]
 
 
 class ManufacturerSpec(s.BaseModel):

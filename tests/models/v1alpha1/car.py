@@ -40,9 +40,7 @@ class ElectricEngine(s.BaseModel):
     electric: ElectricEngineSpec
 
 
-Engine = t.Annotated[
-    t.Union[PetrolEngine, DieselEngine, ElectricEngine], s.StructuralUnion
-]
+Engine = t.Annotated[PetrolEngine | DieselEngine | ElectricEngine, s.StructuralUnion]
 
 
 class Colour(str, s.Enum):

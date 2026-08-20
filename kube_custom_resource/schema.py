@@ -147,7 +147,7 @@ Any = t.Annotated[t.Any, XKubernetesPreserveUnknownFields]
 
 KeyT = t.TypeVar("KeyT")
 ValueT = t.TypeVar("ValueT")
-Dict = t.Annotated[t.Dict[KeyT, ValueT], XKubernetesPreserveUnknownFields]
+Dict = t.Annotated[dict[KeyT, ValueT], XKubernetesPreserveUnknownFields]
 
 
 class XKubernetesIntOrString:
@@ -162,7 +162,7 @@ class XKubernetesIntOrString:
     ) -> CoreSchema:
         # Validate the value as a union of int and str, but convert to a string after
         return core_schema.no_info_after_validator_function(
-            str, handler.generate_schema(t.Union[str, int])
+            str, handler.generate_schema(str | int)
         )
 
     @classmethod
@@ -241,13 +241,13 @@ class _ConvertExclusiveMinMax:
 
 def conint(
     *,
-    strict: t.Optional[bool] = None,
-    gt: t.Optional[int] = None,
-    ge: t.Optional[int] = None,
-    lt: t.Optional[int] = None,
-    le: t.Optional[int] = None,
-    multiple_of: t.Optional[int] = None,
-) -> t.Type[int]:
+    strict: bool | None = None,
+    gt: int | None = None,
+    ge: int | None = None,
+    lt: int | None = None,
+    le: int | None = None,
+    multiple_of: int | None = None,
+) -> type[int]:
     return t.Annotated[
         int,
         Strict(strict) if strict is not None else None,
@@ -259,14 +259,14 @@ def conint(
 
 def confloat(
     *,
-    strict: t.Optional[bool] = None,
-    gt: t.Optional[float] = None,
-    ge: t.Optional[float] = None,
-    lt: t.Optional[float] = None,
-    le: t.Optional[float] = None,
-    multiple_of: t.Optional[float] = None,
-    allow_inf_nan: t.Optional[bool] = None,
-) -> t.Type[float]:
+    strict: bool | None = None,
+    gt: float | None = None,
+    ge: float | None = None,
+    lt: float | None = None,
+    le: float | None = None,
+    multiple_of: float | None = None,
+    allow_inf_nan: bool | None = None,
+) -> type[float]:
     return t.Annotated[
         float,
         Strict(strict) if strict is not None else None,
@@ -295,7 +295,7 @@ class Nullable:
 
 
 OptionalT = t.TypeVar("OptionalT")
-Optional = t.Annotated[t.Optional[OptionalT], Nullable]
+Optional = t.Annotated[OptionalT | None, Nullable]
 
 
 class StructuralUnion:

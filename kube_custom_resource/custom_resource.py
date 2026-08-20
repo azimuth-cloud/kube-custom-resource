@@ -29,7 +29,7 @@ class CustomResourceMeta:
     """
 
     # The API subgroup for the custom resource
-    api_subgroup: typing.Optional[str]
+    api_subgroup: str | None
     # The version of the custom resource
     version: str
     # The scope of the custom resource
@@ -41,11 +41,11 @@ class CustomResourceMeta:
     # The plural name of the resource
     plural_name: str
     # A list of short names for the resource
-    short_names: typing.List[str]
+    short_names: list[str]
     # The subresources for the CRD
-    subresources: typing.Dict[str, typing.Any]
+    subresources: dict[str, typing.Any]
     # A list of printer column definitions for the version
-    printer_columns: typing.List[typing.Dict[str, typing.Any]]
+    printer_columns: list[dict[str, typing.Any]]
     # Indicates if this is the storage version
     storage_version: bool
 
@@ -65,33 +65,31 @@ class CustomResourceMetaclass(type(BaseModel)):
         abstract: bool = False,
         # The API subgroup for the custom resource
         # If not given, the resource is placed in the root api group
-        api_subgroup: typing.Optional[str] = None,
+        api_subgroup: str | None = None,
         # The version of the custom resource
         # If not given, it is inferred from the module if possible
-        version: typing.Optional[str] = None,
+        version: str | None = None,
         # The scope of the resource, either 'Namespaced' or 'Cluster'
         # If not given, Namespaced is used by default
         scope: Scope = Scope.NAMESPACED,
         # The kind of the resource
         # If not given, the model class name is used
-        kind: typing.Optional[str] = None,
+        kind: str | None = None,
         # The singular name of the resource
         # If not given, the lower-cased kind is used
-        singular_name: typing.Optional[str] = None,
+        singular_name: str | None = None,
         # The plural name of the resource
         # If not given, the singular name with 's' appended is used
-        plural_name: typing.Optional[str] = None,
+        plural_name: str | None = None,
         # A list of short names for the resource
         # If not given, no short names are used
-        short_names: typing.Optional[typing.List[str]] = None,
+        short_names: list[str] | None = None,
         # The subresources for the CRD
         # If not given, no subresources are defined
-        subresources: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        subresources: dict[str, typing.Any] | None = None,
         # A list of printer column definitions for the version
         # An "age" column is always appended to the given list
-        printer_columns: typing.Optional[
-            typing.List[typing.Dict[str, typing.Any]]
-        ] = None,
+        printer_columns: list[dict[str, typing.Any]] | None = None,
         # Indicates if this is the storage version
         storage_version: bool = True,
         # Other kwargs, passed to Pydantic
@@ -164,35 +162,33 @@ class Metadata(BaseModel):
     """
 
     name: str = Field(..., description="The name of the resource.")
-    namespace: typing.Optional[str] = Field(
-        None, description="The namespace for the resource."
-    )
-    labels: typing.Dict[str, str] = Field(
+    namespace: str | None = Field(None, description="The namespace for the resource.")
+    labels: dict[str, str] = Field(
         default_factory=dict,
         description="The labels for the resource. Can be used to match selectors.",
     )
-    annotations: typing.Dict[str, str] = Field(
+    annotations: dict[str, str] = Field(
         default_factory=dict,
         description=(
             "Annotations for the resource. Can be used to store arbitrary metadata."
         ),
     )
-    owner_references: typing.List[OwnerReference] = Field(
+    owner_references: list[OwnerReference] = Field(
         default_factory=list,
         description="List of resources that this resource depends on.",
     )
-    finalizers: typing.List[str] = Field(
+    finalizers: list[str] = Field(
         default_factory=list,
         description="List of identifiers blocking removal of the resource.",
     )
-    uid: typing.Optional[str] = Field(None, description="The UID for the resource.")
-    creation_timestamp: typing.Optional[datetime.datetime] = Field(
+    uid: str | None = Field(None, description="The UID for the resource.")
+    creation_timestamp: datetime.datetime | None = Field(
         None, description="The timestamp at which the resource was created."
     )
-    deletion_timestamp: typing.Optional[datetime.datetime] = Field(
+    deletion_timestamp: datetime.datetime | None = Field(
         None, description="The timestamp at which the resource was deleted."
     )
-    resource_version: typing.Optional[str] = Field(
+    resource_version: str | None = Field(
         None,
         description=(
             "The internal version of the resource. "

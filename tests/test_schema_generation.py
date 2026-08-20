@@ -473,7 +473,7 @@ CAR_CRD_EXPECTED = {
                         "jsonPath": ".metadata.creationTimestamp",
                     },
                 ],
-            }
+            },
         ],
     },
 }

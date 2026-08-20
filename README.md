@@ -65,8 +65,7 @@ from kube_custom_resource import CustomResource, Scope, schema
 
 
 Command = typing.Annotated[
-    typing.List[schema.constr(min_length=1)],
-    at.Len(min_length = 1)
+    typing.List[schema.constr(min_length=1)], at.Len(min_length=1)
 ]
 
 
@@ -74,36 +73,32 @@ class JobTemplate(schema.BaseModel):
     """
     The job template for a cronjob.
     """
+
     image: schema.constr(min_length=1) = Field(
-        ..., # Required
-        description="The image to use for jobs."
+        ...,  # Required
+        description="The image to use for jobs.",
     )
-    command: Command = Field(
-        ...,
-        description="The command to execute for jobs."
-    )
+    command: Command = Field(..., description="The command to execute for jobs.")
 
 
 class CronJobSpec(schema.BaseModel):
     """
     The spec for a cronjob.
     """
+
     # Could use pattern="<regex>" to do a tighter validation
     schedule: schema.constr(min_length=1) = Field(
-        ...,
-        description="The schedule the cronjob should run with."
+        ..., description="The schedule the cronjob should run with."
     )
     job_template: JobTemplate = Field(
-        ...,
-        description="The template for jobs produced by the cronjob."
+        ..., description="The template for jobs produced by the cronjob."
     )
     paused: bool = Field(
-        False, # Default value
-        description="Indicates whether the cronjob is paused."
+        False,  # Default value
+        description="Indicates whether the cronjob is paused.",
     )
     successful_jobs_history_limit: schema.conint(gt=0) = Field(
-        3,
-        description="The number of successful jobs to keep."
+        3, description="The number of successful jobs to keep."
     )
 
 
@@ -111,27 +106,21 @@ class ActiveJob(schema.BaseModel):
     """
     Represents an active job for a cronjob.
     """
-    name: schema.constr(min_length=1) = Field(
-        ...,
-        description="The name of the job."
-    )
-    start_time: dt.datetime = Field(
-        ...,
-        description="The start time of the job."
-    )
+
+    name: schema.constr(min_length=1) = Field(..., description="The name of the job.")
+    start_time: dt.datetime = Field(..., description="The start time of the job.")
 
 
 class CronJobStatus(schema.BaseModel):
     """
     The status for a cronjob.
     """
+
     last_schedule_time: schema.Optional[dt.datetime] = Field(
-        None,
-        description="The last time that a job was scheduled."
+        None, description="The last time that a job was scheduled."
     )
     active_jobs: typing.List[ActiveJob] = Field(
-        default_factory=list,
-        description="The list of active jobs for the cronjob."
+        default_factory=list, description="The list of active jobs for the cronjob."
     )
 
 
@@ -163,13 +152,14 @@ class CronJob(
     scope=Scope.NAMESPACED,
     # Names for the resource
     # By default, these are derived from the class name
-    kind="CronJob",           # Defaults to the class name
+    kind="CronJob",  # Defaults to the class name
     singular_name="cronjob",  # Defaults to the lower-cased kind
-    plural_name="cronjobs"    # Defaults to the singular name + "s"
+    plural_name="cronjobs",  # Defaults to the singular name + "s"
 ):
     """
     Custom resource representing a cronjob.
     """
+
     spec: CronJobSpec
     status: CronJobStatus = Field(default_factory=CronJobStatus)
 ```
@@ -199,13 +189,13 @@ for crd in registry:
 Alternatively, `kube-custom-resource` provides a command that can be used to generate YAML files:
 
 ```sh
-kcr_generate <models module> <api group> <output directory>
+uv run kcr_generate <models module> <api group> <output directory>
 ```
 
 e.g.:
 
 ```sh
-kcr_generate myoperator.models myoperator.example.org ./crds
+uv run kcr_generate myoperator.models myoperator.example.org ./crds
 ```
 
 This can be done as part of a build step and then the CRDs can be baked into a Helm chart or
@@ -338,11 +328,14 @@ class ConfigSourceNameKey(schema.BaseModel):
     name: schema.constr(pattern=r"^[a-z0-9-]+$")
     key: schema.constr(min_length=1)
 
+
 class ConfigMapConfigSource(schema.BaseModel):
     config_map: ConfigSourceNameKey
 
+
 class SecretConfigSource(schema.BaseModel):
     secret: ConfigSourceNameKey
+
 
 class InlineConfigSource(schema.BaseModel):
     inline: schema.constr(min_length=1)
@@ -359,6 +352,7 @@ ConfigSource = t.Annotated[
 # Use the union to define the list of config sources
 class ConfigurableObjectSpec(schema.BaseModel):
     config_sources: list[ConfigSource] = Field(default_factory=list)
+
 
 class ConfigurableObject(CustomResource):
     spec: ConfigurableObjectSpec
