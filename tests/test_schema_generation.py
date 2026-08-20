@@ -14,6 +14,11 @@ def test_model_discovery_found_two_models():
     assert len(registry) == 2
 
 
+def test_model_discovery_found_two_versions():
+    crd = registry.get_crd(API_GROUP, "Car")
+    assert len(crd.versions) == 2
+
+
 MANUFACTURER_CRD_EXPECTED = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
@@ -109,7 +114,7 @@ CAR_CRD_EXPECTED = {
             {
                 "name": "v1alpha1",
                 "served": True,
-                "storage": True,
+                "storage": False,
                 "schema": {
                     "openAPIV3Schema": {
                         "description": "Represents a car.",
@@ -242,6 +247,191 @@ CAR_CRD_EXPECTED = {
                                     "model",
                                     "engine",
                                     "colour",
+                                ],
+                                "type": "object",
+                            },
+                            "status": {
+                                "description": "Status for a car.",
+                                "properties": {
+                                    "phase": {
+                                        "description": "Enum of possible phases for the car.",
+                                        "enum": [
+                                            "Unknown",
+                                            "OnOrder",
+                                            "Building",
+                                            "Ready",
+                                            "Delayed",
+                                        ],
+                                        "type": "string",
+                                    }
+                                },
+                                "type": "object",
+                                "x-kubernetes-preserve-unknown-fields": True,
+                            },
+                        },
+                        "required": ["spec"],
+                        "type": "object",
+                    }
+                },
+                "subresources": {"status": {}},
+                "additionalPrinterColumns": [
+                    {
+                        "name": "Manufacturer",
+                        "type": "string",
+                        "jsonPath": ".spec.manufacturer",
+                    },
+                    {"name": "Model", "type": "string", "jsonPath": ".spec.model"},
+                    {"name": "Phase", "type": "string", "jsonPath": ".status.phase"},
+                    {
+                        "name": "Age",
+                        "type": "date",
+                        "jsonPath": ".metadata.creationTimestamp",
+                    },
+                ],
+            },
+            {
+                "name": "v1beta1",
+                "served": True,
+                "storage": True,
+                "schema": {
+                    "openAPIV3Schema": {
+                        "description": "Represents a car.",
+                        "properties": {
+                            "spec": {
+                                "description": "Spec for a car.",
+                                "properties": {
+                                    "manufacturer": {
+                                        "description": "The manufacturer of the car.",
+                                        "pattern": "^[a-zA-Z0-9-]+$",
+                                        "type": "string",
+                                    },
+                                    "model": {
+                                        "description": "The model of the car.",
+                                        "pattern": "^[a-zA-Z0-9-]+$",
+                                        "type": "string",
+                                    },
+                                    "engine": {
+                                        "anyOf": [
+                                            {
+                                                "properties": {
+                                                    "petrol": {
+                                                        "properties": {
+                                                            "capacity": {
+                                                                "exclusiveMinimum": True,
+                                                                "minimum": 0,
+                                                            }
+                                                        },
+                                                        "required": ["capacity"],
+                                                    }
+                                                },
+                                                "required": ["petrol"],
+                                            },
+                                            {
+                                                "properties": {
+                                                    "diesel": {
+                                                        "properties": {
+                                                            "capacity": {
+                                                                "exclusiveMinimum": True,
+                                                                "minimum": 0,
+                                                            }
+                                                        },
+                                                        "required": ["capacity"],
+                                                    }
+                                                },
+                                                "required": ["diesel"],
+                                            },
+                                            {
+                                                "properties": {
+                                                    "electric": {
+                                                        "properties": {
+                                                            "maxPowerOutput": {
+                                                                "exclusiveMinimum": True,
+                                                                "minimum": 0,
+                                                            }
+                                                        },
+                                                        "required": ["maxPowerOutput"],
+                                                    }
+                                                },
+                                                "required": ["electric"],
+                                            },
+                                        ],
+                                        "description": "The engine for the car.",
+                                        "properties": {
+                                            "petrol": {
+                                                "description": "Spec for a combustion engine.",
+                                                "properties": {
+                                                    "capacity": {
+                                                        "description": "The capacity of the engine in litres.",
+                                                        "exclusiveMinimum": True,
+                                                        "minimum": 0,
+                                                        "type": "integer",
+                                                    }
+                                                },
+                                                "required": ["capacity"],
+                                                "type": "object",
+                                            },
+                                            "diesel": {
+                                                "description": "Spec for a combustion engine.",
+                                                "properties": {
+                                                    "capacity": {
+                                                        "description": "The capacity of the engine in litres.",
+                                                        "exclusiveMinimum": True,
+                                                        "minimum": 0,
+                                                        "type": "integer",
+                                                    }
+                                                },
+                                                "required": ["capacity"],
+                                                "type": "object",
+                                            },
+                                            "electric": {
+                                                "description": "Spec for an electric engine.",
+                                                "properties": {
+                                                    "maxPowerOutput": {
+                                                        "description": "The maximum power output of the engine in kW.",
+                                                        "exclusiveMinimum": True,
+                                                        "minimum": 0,
+                                                        "type": "integer",
+                                                    }
+                                                },
+                                                "required": ["maxPowerOutput"],
+                                                "type": "object",
+                                            },
+                                        },
+                                        "type": "object",
+                                    },
+                                    "colour": {
+                                        "description": "Enum of possible colours for a car.",
+                                        "enum": ["White", "Silver", "Red", "Black"],
+                                        "type": "string",
+                                    },
+                                    "coolness": {
+                                        "description": "Coolness score",
+                                        "exclusiveMinimum": True,
+                                        "minimum": 0,
+                                        "type": "integer",
+                                    },
+                                    "owner": {
+                                        "description": "The owner of the car.",
+                                        "minLength": 1,
+                                        "nullable": True,
+                                        "pattern": "^[a-zA-Z0-9 ]*$",
+                                        "type": "string",
+                                    },
+                                    "extras": {
+                                        "additionalProperties": {
+                                            "x-kubernetes-preserve-unknown-fields": True
+                                        },
+                                        "description": "Any extras for the car.",
+                                        "type": "object",
+                                        "x-kubernetes-preserve-unknown-fields": True,
+                                    },
+                                },
+                                "required": [
+                                    "manufacturer",
+                                    "model",
+                                    "engine",
+                                    "colour",
+                                    "coolness",
                                 ],
                                 "type": "object",
                             },
