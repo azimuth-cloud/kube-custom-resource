@@ -8,9 +8,12 @@ import typing
 
 from .custom_resource import CustomResource, Scope
 
+# This regex splits the major version and optional alpha or beta version into 3 groups
+VERSION_COMPONENT_REGEX = re.compile(r"v(\d+)(?:(alpha|beta)(\d+))?")
+
 
 def sort_api_versions(version):
-    m = re.fullmatch(r"v(\d+)(?:(alpha|beta)(\d+))?", version)
+    m = re.fullmatch(VERSION_COMPONENT_REGEX, version)
     if not m:
         raise ValueError(f"Invalid API version: {version}")
 
